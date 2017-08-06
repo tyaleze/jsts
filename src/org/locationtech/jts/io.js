@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2016 by Björn Harrtell.
- * License: https://github.com/bjornharrtell/jsts/blob/master/LICENSE_BHARRTELL_BSD3.txt
- */
-
 import GeoJSONReader from './io/GeoJSONReader'
 import GeoJSONWriter from './io/GeoJSONWriter'
 import WKTReader from './io/WKTReader'
@@ -12,7 +7,7 @@ import OL3Parser from './io/OL3Parser'
 /**
  * @module jsts/io
  */
-export default {
+export {
   /**
    * @type {GeoJSONReader}
    * @memberof module:jsts/io

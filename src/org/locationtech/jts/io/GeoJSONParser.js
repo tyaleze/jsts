@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2016 by Björn Harrtell.
- * License: https://github.com/bjornharrtell/jsts/blob/master/LICENSE_BHARRTELL_BSD3.txt
- */
-
 import Coordinate from '../geom/Coordinate'
 import GeometryFactory from '../geom/GeometryFactory'
 import extend from '../../../../extend'
@@ -56,7 +51,7 @@ extend(GeoJSONParser.prototype, {
     }
 
     // feature or feature collection
-    return this.parse[type].apply(this, [obj])
+    return parse[type].apply(this, [obj])
   },
 
   /**
@@ -98,7 +93,7 @@ const parse = {
     // parse geometry
     if (obj.geometry) {
       const type = obj.geometry.type
-      if (!this.parse[type]) {
+      if (!parse[type]) {
         throw new Error('Unknown GeoJSON type: ' + obj.type)
       }
       feature.geometry = this.read(obj.geometry)
@@ -106,7 +101,7 @@ const parse = {
 
     // bbox
     if (obj.bbox) {
-      feature.bbox = this.parse.bbox.apply(this, [obj.bbox])
+      feature.bbox = parse.bbox.apply(this, [obj.bbox])
     }
 
     return feature
@@ -435,7 +430,7 @@ const extract = {
     const array = []
     for (let i = 0; i < collection.geometries.length; ++i) {
       const geometry = collection.geometries[i]
-      const type = geometry.getGeometryType().slice(10)
+      const type = geometry.getGeometryType()
       array.push(extract[type].apply(this, [geometry]))
     }
     return {

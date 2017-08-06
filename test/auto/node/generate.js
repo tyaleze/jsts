@@ -1,11 +1,10 @@
 import $ from 'cheerio'
-import expect from 'expect.js'
+import { expect } from 'chai'
 
 import GeometryFactory from 'org/locationtech/jts/geom/GeometryFactory'
 import PrecisionModel from 'org/locationtech/jts/geom/PrecisionModel'
 import WKTReader from 'org/locationtech/jts/io/WKTReader'
-import patch from 'org/locationtech/jts/monkey'
-patch()
+import 'org/locationtech/jts/monkey'
 
 import BufferResultMatcher from '../BufferResultMatcher'
 
@@ -74,14 +73,14 @@ export default function (doc, title) {
         if (expectedBool !== result) {
           fail(result, expectedBool, inputs)
         } else {
-          expect(true).to.be.ok()
+          expect(true).to.be.true
         }
       } else if (opname === 'distance') {
         const expectedDistance = parseFloat(expected)
         if (result !== expectedDistance) {
           fail(result, parseFloat(expectedDistance), inputs)
         } else {
-          expect(true).to.be.ok()
+          expect(true).to.be.true
         }
       } else if (opname === 'buffer') {
         const expectedGeometry = reader.read(expected)
@@ -91,7 +90,7 @@ export default function (doc, title) {
         if (!matcher.isBufferResultMatch(result, expectedGeometry, parseFloat(arg2))) {
           fail(result, expected, inputs)
         } else {
-          expect(true).to.be.ok()
+          expect(true).to.be.true
         }
       } else {
         const expectedGeometry = reader.read(expected)
@@ -100,7 +99,7 @@ export default function (doc, title) {
         if (!result.equalsExact(expectedGeometry)) {
           fail(result, expected, inputs)
         } else {
-          expect(true).to.be.ok()
+          expect(true).to.be.true
         }
       }
     })

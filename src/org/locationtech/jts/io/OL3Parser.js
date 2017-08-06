@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2016 by Björn Harrtell.
- * License: https://github.com/bjornharrtell/jsts/blob/master/LICENSE_BHARRTELL_BSD3.txt
- */
-
 /*eslint-disable no-undef */
 
 import Coordinate from '../geom/Coordinate'
@@ -14,10 +9,12 @@ function p2c (p) { return [p.x, p.y] }
 /**
  * OpenLayers 3 Geometry parser and writer
  * @param {GeometryFactory} geometryFactory
+ * @param {ol} olReference
  * @constructor
  */
-export default function OL3Parser (geometryFactory) {
+export default function OL3Parser (geometryFactory, olReference) {
   this.geometryFactory = geometryFactory || new GeometryFactory()
+  this.ol = olReference || (typeof ol !== 'undefined' && ol)
 }
 
 extend(OL3Parser.prototype, {
@@ -27,6 +24,7 @@ extend(OL3Parser.prototype, {
    * @memberof OL3Parser
    */
   read (geometry) {
+    const ol = this.ol
     if (geometry instanceof ol.geom.Point) {
       return this.convertFromPoint(geometry)
     } else if (geometry instanceof ol.geom.LineString) {
@@ -47,7 +45,7 @@ extend(OL3Parser.prototype, {
   },
 
   convertFromPoint (point) {
-    var coordinates = point.getCoordinates()
+    const coordinates = point.getCoordinates()
     return this.geometryFactory.createPoint(new Coordinate(coordinates[0], coordinates[1]))
   },
 
@@ -133,17 +131,17 @@ extend(OL3Parser.prototype, {
   },
 
   convertToPoint (coordinate) {
-    return new ol.geom.Point([coordinate.x, coordinate.y])
+    return new this.ol.geom.Point([coordinate.x, coordinate.y])
   },
 
   convertToLineString (lineString) {
     var points = lineString.points.coordinates.map(p2c)
-    return new ol.geom.LineString(points)
+    return new this.ol.geom.LineString(points)
   },
 
   convertToLinearRing (linearRing) {
     var points = linearRing.points.coordinates.map(p2c)
-    return new ol.geom.LinearRing(points)
+    return new this.ol.geom.LinearRing(points)
   },
 
   convertToPolygon (polygon) {
@@ -151,11 +149,11 @@ extend(OL3Parser.prototype, {
     for (let i = 0; i < polygon.holes.length; i++) {
       rings.push(polygon.holes[i].points.coordinates.map(p2c))
     }
-    return new ol.geom.Polygon(rings)
+    return new this.ol.geom.Polygon(rings)
   },
 
   convertToMultiPoint (multiPoint) {
-    return new ol.geom.MultiPoint(multiPoint.getCoordinates().map(p2c))
+    return new this.ol.geom.MultiPoint(multiPoint.getCoordinates().map(p2c))
   },
 
   convertToMultiLineString (multiLineString) {
@@ -163,7 +161,7 @@ extend(OL3Parser.prototype, {
     for (let i = 0; i < multiLineString.geometries.length; i++) {
       lineStrings.push(this.convertToLineString(multiLineString.geometries[i]).getCoordinates())
     }
-    return new ol.geom.MultiLineString(lineStrings)
+    return new this.ol.geom.MultiLineString(lineStrings)
   },
 
   convertToMultiPolygon (multiPolygon) {
@@ -171,7 +169,7 @@ extend(OL3Parser.prototype, {
     for (let i = 0; i < multiPolygon.geometries.length; i++) {
       polygons.push(this.convertToPolygon(multiPolygon.geometries[i]).getCoordinates())
     }
-    return new ol.geom.MultiPolygon(polygons)
+    return new this.ol.geom.MultiPolygon(polygons)
   },
 
   convertToCollection (geometryCollection) {
@@ -180,6 +178,6 @@ extend(OL3Parser.prototype, {
       var geometry = geometryCollection.geometries[i]
       geometries.push(this.write(geometry))
     }
-    return new ol.geom.GeometryCollection(geometries)
+    return new this.ol.geom.GeometryCollection(geometries)
   }
 })

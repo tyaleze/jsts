@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2016 by Björn Harrtell.
- * License: https://github.com/bjornharrtell/jsts/blob/master/LICENSE_BHARRTELL_BSD3.txt
- */
-
 import GeometryFactory from '../geom/GeometryFactory'
 import PrecisionModel from '../geom/PrecisionModel'
 import GeoJSONParser from './GeoJSONParser'
@@ -31,8 +26,10 @@ extend(GeoJSONReader.prototype, {
   /**
    * Reads a GeoJSON representation of a {@link Geometry}
    *
+   * Will also parse GeoJSON Features/FeatureCollections as custom objects.
+   *
    * @param {Object|String} geoJson a GeoJSON Object or String.
-   * @return {Geometry} a <code>Geometry.</code>
+   * @return {Geometry|Object} a <code>Geometry or Feature/FeatureCollection representation.</code>
    * @memberof GeoJSONReader
    */
   read (geoJson) {

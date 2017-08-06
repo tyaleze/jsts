@@ -2,6 +2,7 @@ import Comparable from '../../../../java/lang/Comparable';
 import Cloneable from '../../../../java/lang/Cloneable';
 import IllegalArgumentException from '../../../../java/lang/IllegalArgumentException';
 import Serializable from '../../../../java/io/Serializable';
+import GeometryComponentFilter from './GeometryComponentFilter';
 import Envelope from './Envelope';
 import Assert from '../util/Assert';
 import extend from '../../../../extend';
@@ -48,22 +49,8 @@ extend(Geometry.prototype, {
 	equalsExact: function (other) {
 		return this === other || this.equalsExact(other, 0);
 	},
-	covers: function (g) {
-		if (!this.getEnvelopeInternal().covers(g.getEnvelopeInternal())) return false;
-		if (this.isRectangle()) {
-			return true;
-		}
-		return this.relate(g).isCovers();
-	},
-	touches: function (g) {
-		if (!this.getEnvelopeInternal().intersects(g.getEnvelopeInternal())) return false;
-		return this.relate(g).isTouches(this.getDimension(), g.getDimension());
-	},
 	geometryChanged: function () {
 		this.apply(Geometry.geometryChangedFilter);
-	},
-	within: function (g) {
-		return g.contains(this);
 	},
 	geometryChangedAction: function () {
 		this.envelope = null;
@@ -113,13 +100,6 @@ extend(Geometry.prototype, {
 			return this.compareToSameClass(o, comp);
 		}
 	},
-	equalsTopo: function (g) {
-		if (!this.getEnvelopeInternal().equals(g.getEnvelopeInternal())) return false;
-		return this.relate(g).isEquals(this.getDimension(), g.getDimension());
-	},
-	coveredBy: function (g) {
-		return g.covers(this);
-	},
 	getUserData: function () {
 		return this.userData;
 	},
@@ -130,7 +110,7 @@ extend(Geometry.prototype, {
 		return this.getFactory().toGeometry(this.getEnvelopeInternal());
 	},
 	checkNotGeometryCollection: function (g) {
-		if (this.getSortIndex() === Geometry.SORTINDEX_GEOMETRYCOLLECTION) {
+		if (g.getSortIndex() === Geometry.SORTINDEX_GEOMETRYCOLLECTION) {
 			throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
 		}
 	},
@@ -139,21 +119,6 @@ extend(Geometry.prototype, {
 			return a.equals(b);
 		}
 		return a.distance(b) <= tolerance;
-	},
-	relate: function () {
-		if (arguments.length === 1) {
-			let g = arguments[0];
-			this.checkNotGeometryCollection(this);
-			this.checkNotGeometryCollection(g);
-			return RelateOp.relate(this, g);
-		} else if (arguments.length === 2) {
-			let g = arguments[0], intersectionPattern = arguments[1];
-			return this.relate(g).matches(intersectionPattern);
-		}
-	},
-	overlaps: function (g) {
-		if (!this.getEnvelopeInternal().intersects(g.getEnvelopeInternal())) return false;
-		return this.relate(g).isOverlaps(this.getDimension(), g.getDimension());
 	},
 	norm: function () {
 		var copy = this.copy();
@@ -174,16 +139,6 @@ extend(Geometry.prototype, {
 	},
 	setUserData: function (userData) {
 		this.userData = userData;
-	},
-	toString: function () {
-		return this.toText();
-	},
-	disjoint: function (g) {
-		return !this.intersects(g);
-	},
-	crosses: function (g) {
-		if (!this.getEnvelopeInternal().intersects(g.getEnvelopeInternal())) return false;
-		return this.relate(g).isCrosses(this.getDimension(), g.getDimension());
 	},
 	compare: function (a, b) {
 		var i = a.iterator();

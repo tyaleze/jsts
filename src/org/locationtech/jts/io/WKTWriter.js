@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2016 by Björn Harrtell.
- * License: https://github.com/bjornharrtell/jsts/blob/master/LICENSE_BHARRTELL_BSD3.txt
- */
-
 import WKTParser from './WKTParser'
 import extend from '../../../../extend'
 
@@ -39,8 +34,10 @@ extend(WKTWriter.prototype, {
    */
   write (geometry) {
     return this.parser.write(geometry)
-  },
+  }
+})
 
+extend(WKTWriter, {
   /**
    * Generates the WKT for a <tt>LINESTRING</tt> specified by two
    * {@link Coordinate}s.

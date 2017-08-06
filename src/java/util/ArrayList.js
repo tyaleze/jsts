@@ -32,8 +32,12 @@ ArrayList.prototype.interfaces_ = function () { return [List, Collection] }
  * @override
  */
 ArrayList.prototype.add = function(e) {
-  this.array_.push(e);
-  return true;
+  if (arguments.length === 1) {
+    this.array_.push(e)
+  } else {
+    this.array_.splice(arguments[0], arguments[1])
+  }
+  return true
 };
 
 ArrayList.prototype.clear = function() {
@@ -185,5 +189,5 @@ Iterator_.prototype.set = function(element) {
  * @override
  */
 Iterator_.prototype.remove = function() {
-  throw new OperationNotSupported();
+  this.arrayList_.remove(this.arrayList_.get(this.position_));
 };
