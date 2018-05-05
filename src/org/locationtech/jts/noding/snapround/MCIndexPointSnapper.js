@@ -1,11 +1,12 @@
 import MonotoneChainSelectAction from '../../index/chain/MonotoneChainSelectAction';
+import MonotoneChain from '../../index/chain/MonotoneChain';
 import ItemVisitor from '../../index/ItemVisitor';
 import extend from '../../../../../extend';
 import inherits from '../../../../../inherits';
 export default function MCIndexPointSnapper() {
-	this.index = null;
+	this._index = null;
 	let index = arguments[0];
-	this.index = index;
+	this._index = index;
 }
 extend(MCIndexPointSnapper.prototype, {
 	snap: function () {
@@ -16,7 +17,7 @@ extend(MCIndexPointSnapper.prototype, {
 			let hotPixel = arguments[0], parentEdge = arguments[1], hotPixelVertexIndex = arguments[2];
 			var pixelEnv = hotPixel.getSafeEnvelope();
 			var hotPixelSnapAction = new HotPixelSnapAction(hotPixel, parentEdge, hotPixelVertexIndex);
-			this.index.query(pixelEnv, {
+			this._index.query(pixelEnv, {
 				interfaces_: function () {
 					return [ItemVisitor];
 				},
@@ -37,14 +38,14 @@ extend(MCIndexPointSnapper.prototype, {
 });
 function HotPixelSnapAction() {
 	MonotoneChainSelectAction.apply(this);
-	this.hotPixel = null;
-	this.parentEdge = null;
-	this.hotPixelVertexIndex = null;
+	this._hotPixel = null;
+	this._parentEdge = null;
+	this._hotPixelVertexIndex = null;
 	this._isNodeAdded = false;
 	let hotPixel = arguments[0], parentEdge = arguments[1], hotPixelVertexIndex = arguments[2];
-	this.hotPixel = hotPixel;
-	this.parentEdge = parentEdge;
-	this.hotPixelVertexIndex = hotPixelVertexIndex;
+	this._hotPixel = hotPixel;
+	this._parentEdge = parentEdge;
+	this._hotPixelVertexIndex = hotPixelVertexIndex;
 }
 inherits(HotPixelSnapAction, MonotoneChainSelectAction);
 extend(HotPixelSnapAction.prototype, {
@@ -52,13 +53,13 @@ extend(HotPixelSnapAction.prototype, {
 		return this._isNodeAdded;
 	},
 	select: function () {
-		if (arguments.length === 2) {
+		if (arguments.length === 2 && (Number.isInteger(arguments[1]) && arguments[0] instanceof MonotoneChain)) {
 			let mc = arguments[0], startIndex = arguments[1];
 			var ss = mc.getContext();
-			if (this.parentEdge !== null) {
-				if (ss === this.parentEdge && startIndex === this.hotPixelVertexIndex) return null;
+			if (this._parentEdge !== null) {
+				if (ss === this._parentEdge && startIndex === this._hotPixelVertexIndex) return null;
 			}
-			this._isNodeAdded = this.hotPixel.addSnappedNode(ss, startIndex);
+			this._isNodeAdded = this._hotPixel.addSnappedNode(ss, startIndex);
 		} else return MonotoneChainSelectAction.prototype.select.apply(this, arguments);
 	},
 	interfaces_: function () {

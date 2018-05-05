@@ -44,7 +44,7 @@ extend(Geometry.prototype, {
 		return IsValidOp.isValid(this);
 	},
 	intersection: function (other) {
-		if (this.isEmpty() || other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.INTERSECTION, this, other, this.factory);
+		if (this.isEmpty() || other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.INTERSECTION, this, other, this._factory);
 		if (this.isGeometryCollection()) {
 			var g2 = other;
 			return GeometryCollectionMapper.map(this, {
@@ -64,7 +64,7 @@ extend(Geometry.prototype, {
 		return RelateOp.covers(this, g);
 	},
 	coveredBy: function (g) {
-		return RelateOp.coveredBy(this, g);
+		return RelateOp.covers(g, this);
 	},
 	touches: function (g) {
 		return RelateOp.touches(this, g);
@@ -100,15 +100,21 @@ extend(Geometry.prototype, {
 		return new ConvexHull(this).getConvexHull();
 	},
 	relate: function (...args) {
-		return RelateOp.relate(this, ...args);
+		if (arguments.length === 1) {
+			let geometry = arguments[0];
+			return RelateOp.relate(this, geometry);
+		} else if (arguments.length === 2) {
+			let geometry = arguments[0], intersectionPattern = arguments[1];
+			return RelateOp.relate(this, geometry).matches(intersectionPattern);
+		}
 	},
 	getCentroid: function () {
-		if (this.isEmpty()) return this.factory.createPoint();
+		if (this.isEmpty()) return this._factory.createPoint();
 		var centPt = Centroid.getCentroid(this);
 		return this.createPointFromInternalCoord(centPt, this);
 	},
 	getInteriorPoint: function () {
-		if (this.isEmpty()) return this.factory.createPoint();
+		if (this.isEmpty()) return this._factory.createPoint();
 		var interiorPt = null;
 		var dim = this.getDimension();
 		if (dim === 0) {
@@ -125,7 +131,7 @@ extend(Geometry.prototype, {
 	},
 	symDifference: function (other) {
 		if (this.isEmpty() || other.isEmpty()) {
-			if (this.isEmpty() && other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.SYMDIFFERENCE, this, other, this.factory);
+			if (this.isEmpty() && other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.SYMDIFFERENCE, this, other, this._factory);
 			if (this.isEmpty()) return other.copy();
 			if (other.isEmpty()) return this.copy();
 		}
@@ -148,7 +154,7 @@ extend(Geometry.prototype, {
 		return RelateOp.contains(this, g);
 	},
 	difference: function (other) {
-		if (this.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.DIFFERENCE, this, other, this.factory);
+		if (this.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.DIFFERENCE, this, other, this._factory);
 		if (other.isEmpty()) return this.copy();
 		this.checkNotGeometryCollection(this);
 		this.checkNotGeometryCollection(other);

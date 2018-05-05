@@ -1,5 +1,5 @@
-import StringBuffer from '../../../../java/lang/StringBuffer';
 import EdgeIntersectionList from './EdgeIntersectionList';
+import IntersectionMatrix from '../geom/IntersectionMatrix';
 import MonotoneChainEdge from './index/MonotoneChainEdge';
 import Position from './Position';
 import Coordinate from '../geom/Coordinate';
@@ -7,37 +7,38 @@ import extend from '../../../../extend';
 import Label from './Label';
 import Envelope from '../geom/Envelope';
 import inherits from '../../../../inherits';
+import StringBuilder from '../../../../java/lang/StringBuilder';
 import Depth from './Depth';
 import GraphComponent from './GraphComponent';
 export default function Edge() {
 	GraphComponent.apply(this);
 	this.pts = null;
-	this.env = null;
+	this._env = null;
 	this.eiList = new EdgeIntersectionList(this);
-	this.name = null;
-	this.mce = null;
+	this._name = null;
+	this._mce = null;
 	this._isIsolated = true;
-	this.depth = new Depth();
-	this.depthDelta = 0;
+	this._depth = new Depth();
+	this._depthDelta = 0;
 	if (arguments.length === 1) {
 		let pts = arguments[0];
 		Edge.call(this, pts, null);
 	} else if (arguments.length === 2) {
 		let pts = arguments[0], label = arguments[1];
 		this.pts = pts;
-		this.label = label;
+		this._label = label;
 	}
 }
 inherits(Edge, GraphComponent);
 extend(Edge.prototype, {
 	getDepth: function () {
-		return this.depth;
+		return this._depth;
 	},
 	getCollapsedEdge: function () {
 		var newPts = new Array(2).fill(null);
 		newPts[0] = this.pts[0];
 		newPts[1] = this.pts[1];
-		var newe = new Edge(newPts, Label.toLineLabel(this.label));
+		var newe = new Edge(newPts, Label.toLineLabel(this._label));
 		return newe;
 	},
 	isIsolated: function () {
@@ -50,7 +51,7 @@ extend(Edge.prototype, {
 		this._isIsolated = isIsolated;
 	},
 	setName: function (name) {
-		this.name = name;
+		this._name = name;
 	},
 	equals: function (o) {
 		if (!(o instanceof Edge)) return false;
@@ -80,19 +81,19 @@ extend(Edge.prototype, {
 		}
 	},
 	print: function (out) {
-		out.print("edge " + this.name + ": ");
+		out.print("edge " + this._name + ": ");
 		out.print("LINESTRING (");
 		for (var i = 0; i < this.pts.length; i++) {
 			if (i > 0) out.print(",");
 			out.print(this.pts[i].x + " " + this.pts[i].y);
 		}
-		out.print(")  " + this.label + " " + this.depthDelta);
+		out.print(")  " + this._label + " " + this._depthDelta);
 	},
 	computeIM: function (im) {
-		Edge.updateIM(this.label, im);
+		Edge.updateIM(this._label, im);
 	},
 	isCollapsed: function () {
-		if (!this.label.isArea()) return false;
+		if (!this._label.isArea()) return false;
 		if (this.pts.length !== 3) return false;
 		if (this.pts[0].equals(this.pts[2])) return true;
 		return false;
@@ -104,30 +105,30 @@ extend(Edge.prototype, {
 		return this.pts.length - 1;
 	},
 	getDepthDelta: function () {
-		return this.depthDelta;
+		return this._depthDelta;
 	},
 	getNumPoints: function () {
 		return this.pts.length;
 	},
 	printReverse: function (out) {
-		out.print("edge " + this.name + ": ");
+		out.print("edge " + this._name + ": ");
 		for (var i = this.pts.length - 1; i >= 0; i--) {
 			out.print(this.pts[i] + " ");
 		}
 		out.println("");
 	},
 	getMonotoneChainEdge: function () {
-		if (this.mce === null) this.mce = new MonotoneChainEdge(this);
-		return this.mce;
+		if (this._mce === null) this._mce = new MonotoneChainEdge(this);
+		return this._mce;
 	},
 	getEnvelope: function () {
-		if (this.env === null) {
-			this.env = new Envelope();
+		if (this._env === null) {
+			this._env = new Envelope();
 			for (var i = 0; i < this.pts.length; i++) {
-				this.env.expandToInclude(this.pts[i]);
+				this._env.expandToInclude(this.pts[i]);
 			}
 		}
-		return this.env;
+		return this._env;
 	},
 	addIntersection: function (li, segmentIndex, geomIndex, intIndex) {
 		var intPt = new Coordinate(li.getIntersection(intIndex));
@@ -144,15 +145,15 @@ extend(Edge.prototype, {
 		var ei = this.eiList.add(intPt, normalizedSegmentIndex, dist);
 	},
 	toString: function () {
-		var buf = new StringBuffer();
-		buf.append("edge " + this.name + ": ");
-		buf.append("LINESTRING (");
+		var builder = new StringBuilder();
+		builder.append("edge " + this._name + ": ");
+		builder.append("LINESTRING (");
 		for (var i = 0; i < this.pts.length; i++) {
-			if (i > 0) buf.append(",");
-			buf.append(this.pts[i].x + " " + this.pts[i].y);
+			if (i > 0) builder.append(",");
+			builder.append(this.pts[i].x + " " + this.pts[i].y);
 		}
-		buf.append(")  " + this.label + " " + this.depthDelta);
-		return buf.toString();
+		builder.append(")  " + this._label + " " + this._depthDelta);
+		return builder.toString();
 	},
 	isPointwiseEqual: function (e) {
 		if (this.pts.length !== e.pts.length) return false;
@@ -164,7 +165,7 @@ extend(Edge.prototype, {
 		return true;
 	},
 	setDepthDelta: function (depthDelta) {
-		this.depthDelta = depthDelta;
+		this._depthDelta = depthDelta;
 	},
 	getEdgeIntersectionList: function () {
 		return this.eiList;
@@ -182,7 +183,7 @@ extend(Edge.prototype, {
 	}
 });
 Edge.updateIM = function () {
-	if (arguments.length === 2) {
+	if (arguments.length === 2 && (arguments[1] instanceof IntersectionMatrix && arguments[0] instanceof Label)) {
 		let label = arguments[0], im = arguments[1];
 		im.setAtLeastIfValid(label.getLocation(0, Position.ON), label.getLocation(1, Position.ON), 1);
 		if (label.isArea()) {

@@ -1,24 +1,25 @@
 import TreeSet from '../../../../java/util/TreeSet';
-import CGAlgorithms from './CGAlgorithms';
 import CoordinateList from '../geom/CoordinateList';
 import Arrays from '../../../../java/util/Arrays';
+import PointLocation from './PointLocation';
 import Stack from '../../../../java/util/Stack';
 import extend from '../../../../extend';
+import Orientation from './Orientation';
 import CoordinateArrays from '../geom/CoordinateArrays';
 import ArrayList from '../../../../java/util/ArrayList';
 import Comparator from '../../../../java/util/Comparator';
 import UniqueCoordinateArrayFilter from '../util/UniqueCoordinateArrayFilter';
 import Assert from '../util/Assert';
 export default function ConvexHull() {
-	this.geomFactory = null;
-	this.inputPts = null;
+	this._geomFactory = null;
+	this._inputPts = null;
 	if (arguments.length === 1) {
 		let geometry = arguments[0];
 		ConvexHull.call(this, ConvexHull.extractCoordinates(geometry), geometry.getFactory());
 	} else if (arguments.length === 2) {
 		let pts = arguments[0], geomFactory = arguments[1];
-		this.inputPts = UniqueCoordinateArrayFilter.filterCoordinates(pts);
-		this.geomFactory = geomFactory;
+		this._inputPts = UniqueCoordinateArrayFilter.filterCoordinates(pts);
+		this._geomFactory = geomFactory;
 	}
 }
 extend(ConvexHull.prototype, {
@@ -47,10 +48,10 @@ extend(ConvexHull.prototype, {
 	lineOrPolygon: function (coordinates) {
 		coordinates = this.cleanRing(coordinates);
 		if (coordinates.length === 3) {
-			return this.geomFactory.createLineString([coordinates[0], coordinates[1]]);
+			return this._geomFactory.createLineString([coordinates[0], coordinates[1]]);
 		}
-		var linearRing = this.geomFactory.createLinearRing(coordinates);
-		return this.geomFactory.createPolygon(linearRing, null);
+		var linearRing = this._geomFactory.createLinearRing(coordinates);
+		return this._geomFactory.createPolygon(linearRing);
 	},
 	cleanRing: function (original) {
 		Assert.equals(original[0], original[original.length - 1]);
@@ -73,7 +74,7 @@ extend(ConvexHull.prototype, {
 		return cleanedRing.toArray(cleanedRingCoordinates);
 	},
 	isBetween: function (c1, c2, c3) {
-		if (CGAlgorithms.computeOrientation(c1, c2, c3) !== 0) {
+		if (Orientation.index(c1, c2, c3) !== 0) {
 			return false;
 		}
 		if (c1.x !== c3.x) {
@@ -102,7 +103,7 @@ extend(ConvexHull.prototype, {
 			reducedSet.add(polyPts[i]);
 		}
 		for (var i = 0; i < inputPts.length; i++) {
-			if (!CGAlgorithms.isPointInRing(inputPts[i], polyPts)) {
+			if (!PointLocation.isInRing(inputPts[i], polyPts)) {
 				reducedSet.add(inputPts[i]);
 			}
 		}
@@ -111,18 +112,18 @@ extend(ConvexHull.prototype, {
 		return reducedPts;
 	},
 	getConvexHull: function () {
-		if (this.inputPts.length === 0) {
-			return this.geomFactory.createGeometryCollection(null);
+		if (this._inputPts.length === 0) {
+			return this._geomFactory.createGeometryCollection();
 		}
-		if (this.inputPts.length === 1) {
-			return this.geomFactory.createPoint(this.inputPts[0]);
+		if (this._inputPts.length === 1) {
+			return this._geomFactory.createPoint(this._inputPts[0]);
 		}
-		if (this.inputPts.length === 2) {
-			return this.geomFactory.createLineString(this.inputPts);
+		if (this._inputPts.length === 2) {
+			return this._geomFactory.createLineString(this._inputPts);
 		}
-		var reducedPts = this.inputPts;
-		if (this.inputPts.length > 50) {
-			reducedPts = this.reduce(this.inputPts);
+		var reducedPts = this._inputPts;
+		if (this._inputPts.length > 50) {
+			reducedPts = this.reduce(this._inputPts);
 		}
 		var sortedPts = this.preSort(reducedPts);
 		var cHS = this.grahamScan(sortedPts);
@@ -182,18 +183,18 @@ extend(ConvexHull.prototype, {
 	grahamScan: function (c) {
 		var p = null;
 		var ps = new Stack();
-		p = ps.push(c[0]);
-		p = ps.push(c[1]);
-		p = ps.push(c[2]);
+		ps.push(c[0]);
+		ps.push(c[1]);
+		ps.push(c[2]);
 		for (var i = 3; i < c.length; i++) {
 			p = ps.pop();
-			while (!ps.empty() && CGAlgorithms.computeOrientation(ps.peek(), p, c[i]) > 0) {
+			while (!ps.empty() && Orientation.index(ps.peek(), p, c[i]) > 0) {
 				p = ps.pop();
 			}
-			p = ps.push(p);
-			p = ps.push(c[i]);
+			ps.push(p);
+			ps.push(c[i]);
 		}
-		p = ps.push(c[0]);
+		ps.push(c[0]);
 		return ps;
 	},
 	interfaces_: function () {
@@ -209,15 +210,15 @@ ConvexHull.extractCoordinates = function (geom) {
 	return filter.getCoordinates();
 };
 function RadialComparator() {
-	this.origin = null;
+	this._origin = null;
 	let origin = arguments[0];
-	this.origin = origin;
+	this._origin = origin;
 }
 extend(RadialComparator.prototype, {
 	compare: function (o1, o2) {
 		var p1 = o1;
 		var p2 = o2;
-		return RadialComparator.polarCompare(this.origin, p1, p2);
+		return RadialComparator.polarCompare(this._origin, p1, p2);
 	},
 	interfaces_: function () {
 		return [Comparator];
@@ -231,9 +232,9 @@ RadialComparator.polarCompare = function (o, p, q) {
 	var dyp = p.y - o.y;
 	var dxq = q.x - o.x;
 	var dyq = q.y - o.y;
-	var orient = CGAlgorithms.computeOrientation(o, p, q);
-	if (orient === CGAlgorithms.COUNTERCLOCKWISE) return 1;
-	if (orient === CGAlgorithms.CLOCKWISE) return -1;
+	var orient = Orientation.index(o, p, q);
+	if (orient === Orientation.COUNTERCLOCKWISE) return 1;
+	if (orient === Orientation.CLOCKWISE) return -1;
 	var op = dxp * dxp + dyp * dyp;
 	var oq = dxq * dxq + dyq * dyq;
 	if (op < oq) {

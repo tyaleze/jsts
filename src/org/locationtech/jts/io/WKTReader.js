@@ -1,3 +1,7 @@
+/**
+ * @module org/locationtech/jts/io/WKTReader
+ */
+
 import GeometryFactory from '../geom/GeometryFactory'
 import PrecisionModel from '../geom/PrecisionModel'
 import WKTParser from './WKTParser'
@@ -21,9 +25,7 @@ import extend from '../../../../extend'
  * @constructor
  */
 export default function WKTReader (geometryFactory) {
-  this.geometryFactory = geometryFactory || new GeometryFactory()
-  this.precisionModel = this.geometryFactory.getPrecisionModel()
-  this.parser = new WKTParser(this.geometryFactory)
+  this.parser = new WKTParser(geometryFactory || new GeometryFactory())
 }
 
 extend(WKTReader.prototype, {
@@ -35,30 +37,10 @@ extend(WKTReader.prototype, {
    *          Specification).
    * @return {Geometry} a <code>Geometry</code> read from
    *         <code>string.</code>
-   * @memberof WKTReader
+   * @memberof module:org/locationtech/jts/io/WKTReader#
    */
   read (wkt) {
     var geometry = this.parser.read(wkt)
-
-    // TODO: port and use GeometryPrecisionReducer, this is a hack
-    if (this.precisionModel.getType() === PrecisionModel.FIXED) {
-      this.reducePrecision(geometry)
-    }
-
     return geometry
-  },
-
-  reducePrecision (geometry) {
-    if (geometry.coordinate) {
-      this.precisionModel.makePrecise(geometry.coordinate)
-    } else if (geometry.points) {
-      for (let i = 0, len = geometry.points.coordinates.length; i < len; i++) {
-        this.precisionModel.makePrecise(geometry.points.coordinates[i])
-      }
-    } else if (geometry.geometries) {
-      for (let i = 0, len = geometry.geometries.length; i < len; i++) {
-        this.reducePrecision(geometry.geometries[i])
-      }
-    }
   }
 })

@@ -141,20 +141,20 @@ extend(Coordinate.prototype, {
 	}
 });
 Coordinate.hashCode = function () {
-	if (arguments.length === 1) {
+	if (arguments.length === 1 && typeof arguments[0] === "number") {
 		let x = arguments[0];
 		var f = Double.doubleToLongBits(x);
 		return Math.trunc(f ^ f >>> 32);
 	}
 };
 function DimensionalComparator() {
-	this.dimensionsToTest = 2;
+	this._dimensionsToTest = 2;
 	if (arguments.length === 0) {
 		DimensionalComparator.call(this, 2);
 	} else if (arguments.length === 1) {
 		let dimensionsToTest = arguments[0];
 		if (dimensionsToTest !== 2 && dimensionsToTest !== 3) throw new IllegalArgumentException("only 2 or 3 dimensions may be specified");
-		this.dimensionsToTest = dimensionsToTest;
+		this._dimensionsToTest = dimensionsToTest;
 	}
 }
 extend(DimensionalComparator.prototype, {
@@ -165,7 +165,7 @@ extend(DimensionalComparator.prototype, {
 		if (compX !== 0) return compX;
 		var compY = DimensionalComparator.compare(c1.y, c2.y);
 		if (compY !== 0) return compY;
-		if (this.dimensionsToTest <= 2) return 0;
+		if (this._dimensionsToTest <= 2) return 0;
 		var compZ = DimensionalComparator.compare(c1.z, c2.z);
 		return compZ;
 	},

@@ -1,27 +1,26 @@
+import IllegalArgumentException from '../../../../java/lang/IllegalArgumentException';
+import extend from '../../../../extend';
+import GeometryComponentFilter from './GeometryComponentFilter';
 import Comparable from '../../../../java/lang/Comparable';
 import Cloneable from '../../../../java/lang/Cloneable';
-import IllegalArgumentException from '../../../../java/lang/IllegalArgumentException';
 import Serializable from '../../../../java/io/Serializable';
-import GeometryComponentFilter from './GeometryComponentFilter';
 import Envelope from './Envelope';
 import Assert from '../util/Assert';
-import extend from '../../../../extend';
-import inherits from '../../../../inherits';
 export default function Geometry() {
-	this.envelope = null;
-	this.factory = null;
-	this.SRID = null;
-	this.userData = null;
+	this._envelope = null;
+	this._factory = null;
+	this._SRID = null;
+	this._userData = null;
 	let factory = arguments[0];
-	this.factory = factory;
-	this.SRID = factory.getSRID();
+	this._factory = factory;
+	this._SRID = factory.getSRID();
 }
 extend(Geometry.prototype, {
 	isGeometryCollection: function () {
-		return this.getSortIndex() === Geometry.SORTINDEX_GEOMETRYCOLLECTION;
+		return this.getTypeCode() === Geometry.TYPECODE_GEOMETRYCOLLECTION;
 	},
 	getFactory: function () {
-		return this.factory;
+		return this._factory;
 	},
 	getGeometryN: function (n) {
 		return this;
@@ -33,17 +32,15 @@ extend(Geometry.prototype, {
 		return false;
 	},
 	equals: function () {
-		if (arguments.length === 1) {
-			if (arguments[0] instanceof Geometry) {
-				let g = arguments[0];
-				if (g === null) return false;
-				return this.equalsTopo(g);
-			} else if (arguments[0] instanceof Object) {
-				let o = arguments[0];
-				if (!(o instanceof Geometry)) return false;
-				var g = o;
-				return this.equalsExact(g);
-			}
+		if (arguments[0] instanceof Geometry) {
+			let g = arguments[0];
+			if (g === null) return false;
+			return this.equalsTopo(g);
+		} else if (arguments[0] instanceof Object) {
+			let o = arguments[0];
+			if (!(o instanceof Geometry)) return false;
+			var g = o;
+			return this.equalsExact(g);
 		}
 	},
 	equalsExact: function (other) {
@@ -53,7 +50,7 @@ extend(Geometry.prototype, {
 		this.apply(Geometry.geometryChangedFilter);
 	},
 	geometryChangedAction: function () {
-		this.envelope = null;
+		this._envelope = null;
 	},
 	equalsNorm: function (g) {
 		if (g === null) return false;
@@ -69,8 +66,8 @@ extend(Geometry.prototype, {
 		if (arguments.length === 1) {
 			let o = arguments[0];
 			var other = o;
-			if (this.getSortIndex() !== other.getSortIndex()) {
-				return this.getSortIndex() - other.getSortIndex();
+			if (this.getTypeCode() !== other.getTypeCode()) {
+				return this.getTypeCode() - other.getTypeCode();
 			}
 			if (this.isEmpty() && other.isEmpty()) {
 				return 0;
@@ -85,8 +82,8 @@ extend(Geometry.prototype, {
 		} else if (arguments.length === 2) {
 			let o = arguments[0], comp = arguments[1];
 			var other = o;
-			if (this.getSortIndex() !== other.getSortIndex()) {
-				return this.getSortIndex() - other.getSortIndex();
+			if (this.getTypeCode() !== other.getTypeCode()) {
+				return this.getTypeCode() - other.getTypeCode();
 			}
 			if (this.isEmpty() && other.isEmpty()) {
 				return 0;
@@ -101,16 +98,16 @@ extend(Geometry.prototype, {
 		}
 	},
 	getUserData: function () {
-		return this.userData;
+		return this._userData;
 	},
 	getSRID: function () {
-		return this.SRID;
+		return this._SRID;
 	},
 	getEnvelope: function () {
 		return this.getFactory().toGeometry(this.getEnvelopeInternal());
 	},
 	checkNotGeometryCollection: function (g) {
-		if (g.getSortIndex() === Geometry.SORTINDEX_GEOMETRYCOLLECTION) {
+		if (g.getTypeCode() === Geometry.TYPECODE_GEOMETRYCOLLECTION) {
 			throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
 		}
 	},
@@ -126,19 +123,19 @@ extend(Geometry.prototype, {
 		return copy;
 	},
 	getPrecisionModel: function () {
-		return this.factory.getPrecisionModel();
+		return this._factory.getPrecisionModel();
 	},
 	getEnvelopeInternal: function () {
-		if (this.envelope === null) {
-			this.envelope = this.computeEnvelopeInternal();
+		if (this._envelope === null) {
+			this._envelope = this.computeEnvelopeInternal();
 		}
-		return new Envelope(this.envelope);
+		return new Envelope(this._envelope);
 	},
 	setSRID: function (SRID) {
-		this.SRID = SRID;
+		this._SRID = SRID;
 	},
 	setUserData: function (userData) {
-		this.userData = userData;
+		this._userData = userData;
 	},
 	compare: function (a, b) {
 		var i = a.iterator();
@@ -163,7 +160,7 @@ extend(Geometry.prototype, {
 		return this.getEnvelopeInternal().hashCode();
 	},
 	isGeometryCollectionOrDerived: function () {
-		if (this.getSortIndex() === Geometry.SORTINDEX_GEOMETRYCOLLECTION || this.getSortIndex() === Geometry.SORTINDEX_MULTIPOINT || this.getSortIndex() === Geometry.SORTINDEX_MULTILINESTRING || this.getSortIndex() === Geometry.SORTINDEX_MULTIPOLYGON) {
+		if (this.getTypeCode() === Geometry.TYPECODE_GEOMETRYCOLLECTION || this.getTypeCode() === Geometry.TYPECODE_MULTIPOINT || this.getTypeCode() === Geometry.TYPECODE_MULTILINESTRING || this.getTypeCode() === Geometry.TYPECODE_MULTIPOLYGON) {
 			return true;
 		}
 		return false;
@@ -192,14 +189,22 @@ Geometry.hasNullElements = function (array) {
 	return false;
 };
 Geometry.serialVersionUID = 8763622679187376702;
-Geometry.SORTINDEX_POINT = 0;
-Geometry.SORTINDEX_MULTIPOINT = 1;
-Geometry.SORTINDEX_LINESTRING = 2;
-Geometry.SORTINDEX_LINEARRING = 3;
-Geometry.SORTINDEX_MULTILINESTRING = 4;
-Geometry.SORTINDEX_POLYGON = 5;
-Geometry.SORTINDEX_MULTIPOLYGON = 6;
-Geometry.SORTINDEX_GEOMETRYCOLLECTION = 7;
+Geometry.TYPECODE_POINT = 0;
+Geometry.TYPECODE_MULTIPOINT = 1;
+Geometry.TYPECODE_LINESTRING = 2;
+Geometry.TYPECODE_LINEARRING = 3;
+Geometry.TYPECODE_MULTILINESTRING = 4;
+Geometry.TYPECODE_POLYGON = 5;
+Geometry.TYPECODE_MULTIPOLYGON = 6;
+Geometry.TYPECODE_GEOMETRYCOLLECTION = 7;
+Geometry.TYPENAME_POINT = "Point";
+Geometry.TYPENAME_MULTIPOINT = "MultiPoint";
+Geometry.TYPENAME_LINESTRING = "LineString";
+Geometry.TYPENAME_LINEARRING = "LinearRing";
+Geometry.TYPENAME_MULTILINESTRING = "MultiLineString";
+Geometry.TYPENAME_POLYGON = "Polygon";
+Geometry.TYPENAME_MULTIPOLYGON = "MultiPolygon";
+Geometry.TYPENAME_GEOMETRYCOLLECTION = "GeometryCollection";
 Geometry.geometryChangedFilter = {
 	interfaces_: function () {
 		return [GeometryComponentFilter];

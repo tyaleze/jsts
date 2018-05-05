@@ -1,14 +1,14 @@
 import extend from '../../../../extend';
 import Assert from '../util/Assert';
 export default function GraphComponent() {
-	this.label = null;
+	this._label = null;
 	this._isInResult = false;
 	this._isCovered = false;
 	this._isCoveredSet = false;
 	this._isVisited = false;
 	if (arguments.length === 0) {} else if (arguments.length === 1) {
 		let label = arguments[0];
-		this.label = label;
+		this._label = label;
 	}
 }
 extend(GraphComponent.prototype, {
@@ -25,17 +25,17 @@ extend(GraphComponent.prototype, {
 		return this._isCoveredSet;
 	},
 	setLabel: function (label) {
-		this.label = label;
+		this._label = label;
 	},
 	getLabel: function () {
-		return this.label;
+		return this._label;
 	},
 	setCovered: function (isCovered) {
 		this._isCovered = isCovered;
 		this._isCoveredSet = true;
 	},
 	updateIM: function (im) {
-		Assert.isTrue(this.label.getGeometryCount() >= 2, "found partial label");
+		Assert.isTrue(this._label.getGeometryCount() >= 2, "found partial label");
 		this.computeIM(im);
 	},
 	isInResult: function () {

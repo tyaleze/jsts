@@ -12,14 +12,14 @@ import inherits from '../../../../../inherits';
 import PlanarGraph from '../../planargraph/PlanarGraph';
 export default function PolygonizeGraph() {
 	PlanarGraph.apply(this);
-	this.factory = null;
+	this._factory = null;
 	let factory = arguments[0];
-	this.factory = factory;
+	this._factory = factory;
 }
 inherits(PolygonizeGraph, PlanarGraph);
 extend(PolygonizeGraph.prototype, {
 	findEdgeRing: function (startDE) {
-		var er = new EdgeRing(this.factory);
+		var er = new EdgeRing(this._factory);
 		er.build(startDE);
 		return er;
 	},
@@ -60,9 +60,9 @@ extend(PolygonizeGraph.prototype, {
 	},
 	deleteCutEdges: function () {
 		this.computeNextCWEdges();
-		PolygonizeGraph.findLabeledEdgeRings(this.dirEdges);
+		PolygonizeGraph.findLabeledEdgeRings(this._dirEdges);
 		var cutLines = new ArrayList();
-		for (var i = this.dirEdges.iterator(); i.hasNext(); ) {
+		for (var i = this._dirEdges.iterator(); i.hasNext(); ) {
 			var de = i.next();
 			if (de.isMarked()) continue;
 			var sym = de.getSym();
@@ -77,11 +77,11 @@ extend(PolygonizeGraph.prototype, {
 	},
 	getEdgeRings: function () {
 		this.computeNextCWEdges();
-		PolygonizeGraph.label(this.dirEdges, -1);
-		var maximalRings = PolygonizeGraph.findLabeledEdgeRings(this.dirEdges);
+		PolygonizeGraph.label(this._dirEdges, -1);
+		var maximalRings = PolygonizeGraph.findLabeledEdgeRings(this._dirEdges);
 		this.convertMaximalToMinimalEdgeRings(maximalRings);
 		var edgeRingList = new ArrayList();
-		for (var i = this.dirEdges.iterator(); i.hasNext(); ) {
+		for (var i = this._dirEdges.iterator(); i.hasNext(); ) {
 			var de = i.next();
 			if (de.isMarked()) continue;
 			if (de.isInRing()) continue;

@@ -3,9 +3,9 @@ import extend from '../../../../../extend';
 import LineSegment from '../../geom/LineSegment';
 export default function QuadEdge() {
 	this._rot = null;
-	this.vertex = null;
-	this.next = null;
-	this.data = null;
+	this._vertex = null;
+	this._next = null;
+	this._data = null;
 }
 extend(QuadEdge.prototype, {
 	equalsNonOriented: function (qe) {
@@ -14,13 +14,13 @@ extend(QuadEdge.prototype, {
 		return false;
 	},
 	toLineSegment: function () {
-		return new LineSegment(this.vertex.getCoordinate(), this.dest().getCoordinate());
+		return new LineSegment(this._vertex.getCoordinate(), this.dest().getCoordinate());
 	},
 	dest: function () {
 		return this.sym().orig();
 	},
 	oNext: function () {
-		return this.next;
+		return this._next;
 	},
 	equalsOriented: function (qe) {
 		if (this.orig().getCoordinate().equals2D(qe.orig().getCoordinate()) && this.dest().getCoordinate().equals2D(qe.dest().getCoordinate())) return true;
@@ -30,7 +30,7 @@ extend(QuadEdge.prototype, {
 		return this.sym().oNext().sym();
 	},
 	lPrev: function () {
-		return this.next.sym();
+		return this._next.sym();
 	},
 	rPrev: function () {
 		return this.sym().oNext();
@@ -39,13 +39,13 @@ extend(QuadEdge.prototype, {
 		return this._rot;
 	},
 	oPrev: function () {
-		return this._rot.next._rot;
+		return this._rot._next._rot;
 	},
 	sym: function () {
 		return this._rot._rot;
 	},
 	setOrig: function (o) {
-		this.vertex = o;
+		this._vertex = o;
 	},
 	lNext: function () {
 		return this.invRot().oNext().rot();
@@ -60,22 +60,22 @@ extend(QuadEdge.prototype, {
 		this.sym().setOrig(d);
 	},
 	setData: function (data) {
-		this.data = data;
+		this._data = data;
 	},
 	getData: function () {
-		return this.data;
+		return this._data;
 	},
 	delete: function () {
 		this._rot = null;
 	},
 	orig: function () {
-		return this.vertex;
+		return this._vertex;
 	},
 	rNext: function () {
-		return this._rot.next.invRot();
+		return this._rot._next.invRot();
 	},
 	toString: function () {
-		var p0 = this.vertex.getCoordinate();
+		var p0 = this._vertex.getCoordinate();
 		var p1 = this.dest().getCoordinate();
 		return WKTWriter.toLineString(p0, p1);
 	},
@@ -89,7 +89,7 @@ extend(QuadEdge.prototype, {
 		return this.invRot().oNext().invRot();
 	},
 	setNext: function (next) {
-		this.next = next;
+		this._next = next;
 	},
 	interfaces_: function () {
 		return [];

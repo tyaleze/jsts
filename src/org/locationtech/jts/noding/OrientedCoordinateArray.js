@@ -2,16 +2,16 @@ import extend from '../../../../extend';
 import Comparable from '../../../../java/lang/Comparable';
 import CoordinateArrays from '../geom/CoordinateArrays';
 export default function OrientedCoordinateArray() {
-	this.pts = null;
+	this._pts = null;
 	this._orientation = null;
 	let pts = arguments[0];
-	this.pts = pts;
+	this._pts = pts;
 	this._orientation = OrientedCoordinateArray.orientation(pts);
 }
 extend(OrientedCoordinateArray.prototype, {
 	compareTo: function (o1) {
 		var oca = o1;
-		var comp = OrientedCoordinateArray.compareOriented(this.pts, this._orientation, oca.pts, oca._orientation);
+		var comp = OrientedCoordinateArray.compareOriented(this._pts, this._orientation, oca._pts, oca._orientation);
 		return comp;
 	},
 	interfaces_: function () {

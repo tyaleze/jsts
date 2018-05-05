@@ -2,7 +2,7 @@ import PointLocator from '../algorithm/PointLocator';
 import Location from '../geom/Location';
 import LineString from '../geom/LineString';
 import HashMap from '../../../../java/util/HashMap';
-import CGAlgorithms from '../algorithm/CGAlgorithms';
+import Geometry from '../geom/Geometry';
 import hasInterface from '../../../../hasInterface';
 import Position from './Position';
 import Coordinate from '../geom/Coordinate';
@@ -13,6 +13,7 @@ import SimpleMCSweepLineIntersector from './index/SimpleMCSweepLineIntersector';
 import LinearRing from '../geom/LinearRing';
 import BoundaryNodeRule from '../algorithm/BoundaryNodeRule';
 import extend from '../../../../extend';
+import Orientation from '../algorithm/Orientation';
 import SegmentIntersector from './index/SegmentIntersector';
 import MultiPolygon from '../geom/MultiPolygon';
 import Label from './Label';
@@ -27,24 +28,24 @@ import MultiLineString from '../geom/MultiLineString';
 import PlanarGraph from './PlanarGraph';
 export default function GeometryGraph() {
 	PlanarGraph.apply(this);
-	this.parentGeom = null;
-	this.lineEdgeMap = new HashMap();
-	this.boundaryNodeRule = null;
-	this.useBoundaryDeterminationRule = true;
-	this.argIndex = null;
-	this.boundaryNodes = null;
+	this._parentGeom = null;
+	this._lineEdgeMap = new HashMap();
+	this._boundaryNodeRule = null;
+	this._useBoundaryDeterminationRule = true;
+	this._argIndex = null;
+	this._boundaryNodes = null;
 	this._hasTooFewPoints = false;
-	this.invalidPoint = null;
-	this.areaPtLocator = null;
-	this.ptLocator = new PointLocator();
+	this._invalidPoint = null;
+	this._areaPtLocator = null;
+	this._ptLocator = new PointLocator();
 	if (arguments.length === 2) {
 		let argIndex = arguments[0], parentGeom = arguments[1];
 		GeometryGraph.call(this, argIndex, parentGeom, BoundaryNodeRule.OGC_SFS_BOUNDARY_RULE);
 	} else if (arguments.length === 3) {
 		let argIndex = arguments[0], parentGeom = arguments[1], boundaryNodeRule = arguments[2];
-		this.argIndex = argIndex;
-		this.parentGeom = parentGeom;
-		this.boundaryNodeRule = boundaryNodeRule;
+		this._argIndex = argIndex;
+		this._parentGeom = parentGeom;
+		this._boundaryNodeRule = boundaryNodeRule;
 		if (parentGeom !== null) {
 			this.add(parentGeom);
 		}
@@ -53,13 +54,13 @@ export default function GeometryGraph() {
 inherits(GeometryGraph, PlanarGraph);
 extend(GeometryGraph.prototype, {
 	insertBoundaryPoint: function (argIndex, coord) {
-		var n = this.nodes.addNode(coord);
+		var n = this._nodes.addNode(coord);
 		var lbl = n.getLabel();
 		var boundaryCount = 1;
 		var loc = Location.NONE;
 		loc = lbl.getLocation(argIndex, Position.ON);
 		if (loc === Location.BOUNDARY) boundaryCount++;
-		var newLoc = GeometryGraph.determineBoundary(this.boundaryNodeRule, boundaryCount);
+		var newLoc = GeometryGraph.determineBoundary(this._boundaryNodeRule, boundaryCount);
 		lbl.setLocation(argIndex, newLoc);
 	},
 	computeSelfNodes: function () {
@@ -71,15 +72,15 @@ extend(GeometryGraph.prototype, {
 			var si = new SegmentIntersector(li, true, false);
 			si.setIsDoneIfProperInt(isDoneIfProperInt);
 			var esi = this.createEdgeSetIntersector();
-			var isRings = this.parentGeom instanceof LinearRing || this.parentGeom instanceof Polygon || this.parentGeom instanceof MultiPolygon;
+			var isRings = this._parentGeom instanceof LinearRing || this._parentGeom instanceof Polygon || this._parentGeom instanceof MultiPolygon;
 			var computeAllSegments = computeRingSelfNodes || !isRings;
-			esi.computeIntersections(this.edges, si, computeAllSegments);
-			this.addSelfIntersectionNodes(this.argIndex);
+			esi.computeIntersections(this._edges, si, computeAllSegments);
+			this.addSelfIntersectionNodes(this._argIndex);
 			return si;
 		}
 	},
 	computeSplitEdges: function (edgelist) {
-		for (var i = this.edges.iterator(); i.hasNext(); ) {
+		for (var i = this._edges.iterator(); i.hasNext(); ) {
 			var e = i.next();
 			e.eiList.addSplitEdges(edgelist);
 		}
@@ -88,14 +89,14 @@ extend(GeometryGraph.prototype, {
 		var si = new SegmentIntersector(li, includeProper, true);
 		si.setBoundaryNodes(this.getBoundaryNodes(), g.getBoundaryNodes());
 		var esi = this.createEdgeSetIntersector();
-		esi.computeIntersections(this.edges, g.edges, si);
+		esi.computeIntersections(this._edges, g._edges, si);
 		return si;
 	},
 	getGeometry: function () {
-		return this.parentGeom;
+		return this._parentGeom;
 	},
 	getBoundaryNodeRule: function () {
-		return this.boundaryNodeRule;
+		return this._boundaryNodeRule;
 	},
 	hasTooFewPoints: function () {
 		return this._hasTooFewPoints;
@@ -104,10 +105,10 @@ extend(GeometryGraph.prototype, {
 		if (arguments[0] instanceof Point) {
 			let p = arguments[0];
 			var coord = p.getCoordinate();
-			this.insertPoint(this.argIndex, coord, Location.INTERIOR);
+			this.insertPoint(this._argIndex, coord, Location.INTERIOR);
 		} else if (arguments[0] instanceof Coordinate) {
 			let pt = arguments[0];
-			this.insertPoint(this.argIndex, pt, Location.INTERIOR);
+			this.insertPoint(this._argIndex, pt, Location.INTERIOR);
 		}
 	},
 	addPolygon: function (p) {
@@ -120,25 +121,25 @@ extend(GeometryGraph.prototype, {
 	addEdge: function (e) {
 		this.insertEdge(e);
 		var coord = e.getCoordinates();
-		this.insertPoint(this.argIndex, coord[0], Location.BOUNDARY);
-		this.insertPoint(this.argIndex, coord[coord.length - 1], Location.BOUNDARY);
+		this.insertPoint(this._argIndex, coord[0], Location.BOUNDARY);
+		this.insertPoint(this._argIndex, coord[coord.length - 1], Location.BOUNDARY);
 	},
 	addLineString: function (line) {
 		var coord = CoordinateArrays.removeRepeatedPoints(line.getCoordinates());
 		if (coord.length < 2) {
 			this._hasTooFewPoints = true;
-			this.invalidPoint = coord[0];
+			this._invalidPoint = coord[0];
 			return null;
 		}
-		var e = new Edge(coord, new Label(this.argIndex, Location.INTERIOR));
-		this.lineEdgeMap.put(line, e);
+		var e = new Edge(coord, new Label(this._argIndex, Location.INTERIOR));
+		this._lineEdgeMap.put(line, e);
 		this.insertEdge(e);
 		Assert.isTrue(coord.length >= 2, "found LineString with single point");
-		this.insertBoundaryPoint(this.argIndex, coord[0]);
-		this.insertBoundaryPoint(this.argIndex, coord[coord.length - 1]);
+		this.insertBoundaryPoint(this._argIndex, coord[0]);
+		this.insertBoundaryPoint(this._argIndex, coord[coord.length - 1]);
 	},
 	getInvalidPoint: function () {
-		return this.invalidPoint;
+		return this._invalidPoint;
 	},
 	getBoundaryPoints: function () {
 		var coll = this.getBoundaryNodes();
@@ -151,44 +152,44 @@ extend(GeometryGraph.prototype, {
 		return pts;
 	},
 	getBoundaryNodes: function () {
-		if (this.boundaryNodes === null) this.boundaryNodes = this.nodes.getBoundaryNodes(this.argIndex);
-		return this.boundaryNodes;
+		if (this._boundaryNodes === null) this._boundaryNodes = this._nodes.getBoundaryNodes(this._argIndex);
+		return this._boundaryNodes;
 	},
 	addSelfIntersectionNode: function (argIndex, coord, loc) {
 		if (this.isBoundaryNode(argIndex, coord)) return null;
-		if (loc === Location.BOUNDARY && this.useBoundaryDeterminationRule) this.insertBoundaryPoint(argIndex, coord); else this.insertPoint(argIndex, coord, loc);
+		if (loc === Location.BOUNDARY && this._useBoundaryDeterminationRule) this.insertBoundaryPoint(argIndex, coord); else this.insertPoint(argIndex, coord, loc);
 	},
 	addPolygonRing: function (lr, cwLeft, cwRight) {
 		if (lr.isEmpty()) return null;
 		var coord = CoordinateArrays.removeRepeatedPoints(lr.getCoordinates());
 		if (coord.length < 4) {
 			this._hasTooFewPoints = true;
-			this.invalidPoint = coord[0];
+			this._invalidPoint = coord[0];
 			return null;
 		}
 		var left = cwLeft;
 		var right = cwRight;
-		if (CGAlgorithms.isCCW(coord)) {
+		if (Orientation.isCCW(coord)) {
 			left = cwRight;
 			right = cwLeft;
 		}
-		var e = new Edge(coord, new Label(this.argIndex, Location.BOUNDARY, left, right));
-		this.lineEdgeMap.put(lr, e);
+		var e = new Edge(coord, new Label(this._argIndex, Location.BOUNDARY, left, right));
+		this._lineEdgeMap.put(lr, e);
 		this.insertEdge(e);
-		this.insertPoint(this.argIndex, coord[0], Location.BOUNDARY);
+		this.insertPoint(this._argIndex, coord[0], Location.BOUNDARY);
 	},
 	insertPoint: function (argIndex, coord, onLocation) {
-		var n = this.nodes.addNode(coord);
+		var n = this._nodes.addNode(coord);
 		var lbl = n.getLabel();
 		if (lbl === null) {
-			n.label = new Label(argIndex, onLocation);
+			n._label = new Label(argIndex, onLocation);
 		} else lbl.setLocation(argIndex, onLocation);
 	},
 	createEdgeSetIntersector: function () {
 		return new SimpleMCSweepLineIntersector();
 	},
 	addSelfIntersectionNodes: function (argIndex) {
-		for (var i = this.edges.iterator(); i.hasNext(); ) {
+		for (var i = this._edges.iterator(); i.hasNext(); ) {
 			var e = i.next();
 			var eLoc = e.getLabel().getLocation(argIndex);
 			for (var eiIt = e.eiList.iterator(); eiIt.hasNext(); ) {
@@ -198,10 +199,10 @@ extend(GeometryGraph.prototype, {
 		}
 	},
 	add: function () {
-		if (arguments.length === 1) {
+		if (arguments.length === 1 && arguments[0] instanceof Geometry) {
 			let g = arguments[0];
 			if (g.isEmpty()) return null;
-			if (g instanceof MultiPolygon) this.useBoundaryDeterminationRule = false;
+			if (g instanceof MultiPolygon) this._useBoundaryDeterminationRule = false;
 			if (g instanceof Polygon) this.addPolygon(g); else if (g instanceof LineString) this.addLineString(g); else if (g instanceof Point) this.addPoint(g); else if (g instanceof MultiPoint) this.addCollection(g); else if (g instanceof MultiLineString) this.addCollection(g); else if (g instanceof MultiPolygon) this.addCollection(g); else if (g instanceof GeometryCollection) this.addCollection(g); else throw new UnsupportedOperationException(g.getClass().getName());
 		} else return PlanarGraph.prototype.add.apply(this, arguments);
 	},
@@ -212,18 +213,18 @@ extend(GeometryGraph.prototype, {
 		}
 	},
 	locate: function (pt) {
-		if (hasInterface(this.parentGeom, Polygonal) && this.parentGeom.getNumGeometries() > 50) {
-			if (this.areaPtLocator === null) {
-				this.areaPtLocator = new IndexedPointInAreaLocator(this.parentGeom);
+		if (hasInterface(this._parentGeom, Polygonal) && this._parentGeom.getNumGeometries() > 50) {
+			if (this._areaPtLocator === null) {
+				this._areaPtLocator = new IndexedPointInAreaLocator(this._parentGeom);
 			}
-			return this.areaPtLocator.locate(pt);
+			return this._areaPtLocator.locate(pt);
 		}
-		return this.ptLocator.locate(pt, this.parentGeom);
+		return this._ptLocator.locate(pt, this._parentGeom);
 	},
 	findEdge: function () {
-		if (arguments.length === 1) {
+		if (arguments.length === 1 && arguments[0] instanceof LineString) {
 			let line = arguments[0];
-			return this.lineEdgeMap.get(line);
+			return this._lineEdgeMap.get(line);
 		} else return PlanarGraph.prototype.findEdge.apply(this, arguments);
 	},
 	interfaces_: function () {

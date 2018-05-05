@@ -1,5 +1,6 @@
 import CoordinateSequenceFactory from './CoordinateSequenceFactory';
 import LineString from './LineString';
+import Geometry from './Geometry';
 import hasInterface from '../../../../hasInterface';
 import Coordinate from './Coordinate';
 import Point from './Point';
@@ -18,9 +19,9 @@ import Serializable from '../../../../java/io/Serializable';
 import Assert from '../util/Assert';
 import MultiLineString from './MultiLineString';
 export default function GeometryFactory() {
-	this.precisionModel = null;
-	this.coordinateSequenceFactory = null;
-	this.SRID = null;
+	this._precisionModel = null;
+	this._coordinateSequenceFactory = null;
+	this._SRID = null;
 	if (arguments.length === 0) {
 		GeometryFactory.call(this, new PrecisionModel(), 0);
 	} else if (arguments.length === 1) {
@@ -36,15 +37,15 @@ export default function GeometryFactory() {
 		GeometryFactory.call(this, precisionModel, SRID, GeometryFactory.getDefaultCoordinateSequenceFactory());
 	} else if (arguments.length === 3) {
 		let precisionModel = arguments[0], SRID = arguments[1], coordinateSequenceFactory = arguments[2];
-		this.precisionModel = precisionModel;
-		this.coordinateSequenceFactory = coordinateSequenceFactory;
-		this.SRID = SRID;
+		this._precisionModel = precisionModel;
+		this._coordinateSequenceFactory = coordinateSequenceFactory;
+		this._SRID = SRID;
 	}
 }
 extend(GeometryFactory.prototype, {
 	toGeometry: function (envelope) {
 		if (envelope.isNull()) {
-			return this.createPoint(null);
+			return this.createPoint();
 		}
 		if (envelope.getMinX() === envelope.getMaxX() && envelope.getMinY() === envelope.getMaxY()) {
 			return this.createPoint(new Coordinate(envelope.getMinX(), envelope.getMinY()));
@@ -88,7 +89,7 @@ extend(GeometryFactory.prototype, {
 			if (partClass !== geomClass) {
 				isHeterogeneous = true;
 			}
-			if (geom.isGeometryCollectionOrDerived()) hasGeometryCollection = true;
+			if (geom instanceof GeometryCollection) hasGeometryCollection = true;
 		}
 		if (geomClass === null) {
 			return this.createGeometryCollection();
@@ -127,18 +128,18 @@ extend(GeometryFactory.prototype, {
 		}
 	},
 	getCoordinateSequenceFactory: function () {
-		return this.coordinateSequenceFactory;
+		return this._coordinateSequenceFactory;
 	},
 	createPolygon: function () {
 		if (arguments.length === 0) {
-			return new Polygon(null, null, this);
+			return this.createPolygon(null, null);
 		} else if (arguments.length === 1) {
 			if (hasInterface(arguments[0], CoordinateSequence)) {
-				let coordinates = arguments[0];
-				return this.createPolygon(this.createLinearRing(coordinates));
+				let shell = arguments[0];
+				return this.createPolygon(this.createLinearRing(shell));
 			} else if (arguments[0] instanceof Array) {
-				let coordinates = arguments[0];
-				return this.createPolygon(this.createLinearRing(coordinates));
+				let shell = arguments[0];
+				return this.createPolygon(this.createLinearRing(shell));
 			} else if (arguments[0] instanceof LinearRing) {
 				let shell = arguments[0];
 				return this.createPolygon(shell, null);
@@ -149,7 +150,7 @@ extend(GeometryFactory.prototype, {
 		}
 	},
 	getSRID: function () {
-		return this.SRID;
+		return this._SRID;
 	},
 	createGeometryCollection: function () {
 		if (arguments.length === 0) {
@@ -163,15 +164,15 @@ extend(GeometryFactory.prototype, {
 		var editor = new GeometryEditor(this);
 		return editor.edit(g, {
 			edit: function () {
-				if (arguments.length === 2) {
+				if (arguments.length === 2 && (arguments[1] instanceof Geometry && hasInterface(arguments[0], CoordinateSequence))) {
 					let coordSeq = arguments[0], geometry = arguments[1];
-					return this.coordinateSequenceFactory.create(coordSeq);
+					return this._coordinateSequenceFactory.create(coordSeq);
 				}
 			}
 		});
 	},
 	getPrecisionModel: function () {
-		return this.precisionModel;
+		return this._precisionModel;
 	},
 	createLinearRing: function () {
 		if (arguments.length === 0) {
@@ -201,9 +202,6 @@ extend(GeometryFactory.prototype, {
 			if (arguments[0] instanceof Array) {
 				let point = arguments[0];
 				return new MultiPoint(point, this);
-			} else if (arguments[0] instanceof Array) {
-				let coordinates = arguments[0];
-				return this.createMultiPoint(coordinates !== null ? this.getCoordinateSequenceFactory().create(coordinates) : null);
 			} else if (hasInterface(arguments[0], CoordinateSequence)) {
 				let coordinates = arguments[0];
 				if (coordinates === null) {

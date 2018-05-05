@@ -4,6 +4,7 @@ import EdgeNodingValidator from '../../geomgraph/EdgeNodingValidator';
 import GeometryCollectionMapper from '../../geom/util/GeometryCollectionMapper';
 import PolygonBuilder from './PolygonBuilder';
 import Position from '../../geomgraph/Position';
+import IllegalArgumentException from '../../../../../java/lang/IllegalArgumentException';
 import LineBuilder from './LineBuilder';
 import PointBuilder from './PointBuilder';
 import SnapIfNeededOverlayOp from './snap/SnapIfNeededOverlayOp';
@@ -17,23 +18,23 @@ import Assert from '../../util/Assert';
 import inherits from '../../../../../inherits';
 import PlanarGraph from '../../geomgraph/PlanarGraph';
 export default function OverlayOp() {
-	this.ptLocator = new PointLocator();
-	this.geomFact = null;
-	this.resultGeom = null;
-	this.graph = null;
-	this.edgeList = new EdgeList();
-	this.resultPolyList = new ArrayList();
-	this.resultLineList = new ArrayList();
-	this.resultPointList = new ArrayList();
+	this._ptLocator = new PointLocator();
+	this._geomFact = null;
+	this._resultGeom = null;
+	this._graph = null;
+	this._edgeList = new EdgeList();
+	this._resultPolyList = new ArrayList();
+	this._resultLineList = new ArrayList();
+	this._resultPointList = new ArrayList();
 	let g0 = arguments[0], g1 = arguments[1];
 	GeometryGraphOperation.call(this, g0, g1);
-	this.graph = new PlanarGraph(new OverlayNodeFactory());
-	this.geomFact = g0.getFactory();
+	this._graph = new PlanarGraph(new OverlayNodeFactory());
+	this._geomFact = g0.getFactory();
 }
 inherits(OverlayOp, GeometryGraphOperation);
 extend(OverlayOp.prototype, {
 	insertUniqueEdge: function (e) {
-		var existingEdge = this.edgeList.findEqualEdge(e);
+		var existingEdge = this._edgeList.findEqualEdge(e);
 		if (existingEdge !== null) {
 			var existingLabel = existingEdge.getLabel();
 			var labelToMerge = e.getLabel();
@@ -48,14 +49,14 @@ extend(OverlayOp.prototype, {
 			depth.add(labelToMerge);
 			existingLabel.merge(labelToMerge);
 		} else {
-			this.edgeList.add(e);
+			this._edgeList.add(e);
 		}
 	},
 	getGraph: function () {
-		return this.graph;
+		return this._graph;
 	},
 	cancelDuplicateResultEdges: function () {
-		for (var it = this.graph.getEdgeEnds().iterator(); it.hasNext(); ) {
+		for (var it = this._graph.getEdgeEnds().iterator(); it.hasNext(); ) {
 			var de = it.next();
 			var sym = de.getSym();
 			if (de.isInResult() && sym.isInResult()) {
@@ -65,8 +66,8 @@ extend(OverlayOp.prototype, {
 		}
 	},
 	isCoveredByLA: function (coord) {
-		if (this.isCovered(coord, this.resultLineList)) return true;
-		if (this.isCovered(coord, this.resultPolyList)) return true;
+		if (this.isCovered(coord, this._resultLineList)) return true;
+		if (this.isCovered(coord, this._resultPolyList)) return true;
 		return false;
 	},
 	computeGeometry: function (resultPointList, resultLineList, resultPolyList, opcode) {
@@ -74,11 +75,11 @@ extend(OverlayOp.prototype, {
 		geomList.addAll(resultPointList);
 		geomList.addAll(resultLineList);
 		geomList.addAll(resultPolyList);
-		if (geomList.isEmpty()) return OverlayOp.createEmptyResult(opcode, this.arg[0].getGeometry(), this.arg[1].getGeometry(), this.geomFact);
-		return this.geomFact.buildGeometry(geomList);
+		if (geomList.isEmpty()) return OverlayOp.createEmptyResult(opcode, this._arg[0].getGeometry(), this._arg[1].getGeometry(), this._geomFact);
+		return this._geomFact.buildGeometry(geomList);
 	},
 	mergeSymLabels: function () {
-		for (var nodeit = this.graph.getNodes().iterator(); nodeit.hasNext(); ) {
+		for (var nodeit = this._graph.getNodes().iterator(); nodeit.hasNext(); ) {
 			var node = nodeit.next();
 			node.getEdges().mergeSymLabels();
 		}
@@ -86,24 +87,24 @@ extend(OverlayOp.prototype, {
 	isCovered: function (coord, geomList) {
 		for (var it = geomList.iterator(); it.hasNext(); ) {
 			var geom = it.next();
-			var loc = this.ptLocator.locate(coord, geom);
+			var loc = this._ptLocator.locate(coord, geom);
 			if (loc !== Location.EXTERIOR) return true;
 		}
 		return false;
 	},
 	replaceCollapsedEdges: function () {
 		var newEdges = new ArrayList();
-		for (var it = this.edgeList.iterator(); it.hasNext(); ) {
+		for (var it = this._edgeList.iterator(); it.hasNext(); ) {
 			var e = it.next();
 			if (e.isCollapsed()) {
 				it.remove();
 				newEdges.add(e.getCollapsedEdge());
 			}
 		}
-		this.edgeList.addAll(newEdges);
+		this._edgeList.addAll(newEdges);
 	},
 	updateNodeLabelling: function () {
-		for (var nodeit = this.graph.getNodes().iterator(); nodeit.hasNext(); ) {
+		for (var nodeit = this._graph.getNodes().iterator(); nodeit.hasNext(); ) {
 			var node = nodeit.next();
 			var lbl = node.getEdges().getLabel();
 			node.getLabel().merge(lbl);
@@ -111,7 +112,7 @@ extend(OverlayOp.prototype, {
 	},
 	getResultGeometry: function (overlayOpCode) {
 		this.computeOverlay(overlayOpCode);
-		return this.resultGeom;
+		return this._resultGeom;
 	},
 	insertUniqueEdges: function (edges) {
 		for (var i = edges.iterator(); i.hasNext(); ) {
@@ -122,44 +123,44 @@ extend(OverlayOp.prototype, {
 	computeOverlay: function (opCode) {
 		this.copyPoints(0);
 		this.copyPoints(1);
-		this.arg[0].computeSelfNodes(this.li, false);
-		this.arg[1].computeSelfNodes(this.li, false);
-		this.arg[0].computeEdgeIntersections(this.arg[1], this.li, true);
+		this._arg[0].computeSelfNodes(this._li, false);
+		this._arg[1].computeSelfNodes(this._li, false);
+		this._arg[0].computeEdgeIntersections(this._arg[1], this._li, true);
 		var baseSplitEdges = new ArrayList();
-		this.arg[0].computeSplitEdges(baseSplitEdges);
-		this.arg[1].computeSplitEdges(baseSplitEdges);
+		this._arg[0].computeSplitEdges(baseSplitEdges);
+		this._arg[1].computeSplitEdges(baseSplitEdges);
 		var splitEdges = baseSplitEdges;
 		this.insertUniqueEdges(baseSplitEdges);
 		this.computeLabelsFromDepths();
 		this.replaceCollapsedEdges();
-		EdgeNodingValidator.checkValid(this.edgeList.getEdges());
-		this.graph.addEdges(this.edgeList.getEdges());
+		EdgeNodingValidator.checkValid(this._edgeList.getEdges());
+		this._graph.addEdges(this._edgeList.getEdges());
 		this.computeLabelling();
 		this.labelIncompleteNodes();
 		this.findResultAreaEdges(opCode);
 		this.cancelDuplicateResultEdges();
-		var polyBuilder = new PolygonBuilder(this.geomFact);
-		polyBuilder.add(this.graph);
-		this.resultPolyList = polyBuilder.getPolygons();
-		var lineBuilder = new LineBuilder(this, this.geomFact, this.ptLocator);
-		this.resultLineList = lineBuilder.build(opCode);
-		var pointBuilder = new PointBuilder(this, this.geomFact, this.ptLocator);
-		this.resultPointList = pointBuilder.build(opCode);
-		this.resultGeom = this.computeGeometry(this.resultPointList, this.resultLineList, this.resultPolyList, opCode);
+		var polyBuilder = new PolygonBuilder(this._geomFact);
+		polyBuilder.add(this._graph);
+		this._resultPolyList = polyBuilder.getPolygons();
+		var lineBuilder = new LineBuilder(this, this._geomFact, this._ptLocator);
+		this._resultLineList = lineBuilder.build(opCode);
+		var pointBuilder = new PointBuilder(this, this._geomFact, this._ptLocator);
+		this._resultPointList = pointBuilder.build(opCode);
+		this._resultGeom = this.computeGeometry(this._resultPointList, this._resultLineList, this._resultPolyList, opCode);
 	},
 	labelIncompleteNode: function (n, targetIndex) {
-		var loc = this.ptLocator.locate(n.getCoordinate(), this.arg[targetIndex].getGeometry());
+		var loc = this._ptLocator.locate(n.getCoordinate(), this._arg[targetIndex].getGeometry());
 		n.getLabel().setLocation(targetIndex, loc);
 	},
 	copyPoints: function (argIndex) {
-		for (var i = this.arg[argIndex].getNodeIterator(); i.hasNext(); ) {
+		for (var i = this._arg[argIndex].getNodeIterator(); i.hasNext(); ) {
 			var graphNode = i.next();
-			var newNode = this.graph.addNode(graphNode.getCoordinate());
+			var newNode = this._graph.addNode(graphNode.getCoordinate());
 			newNode.setLabel(argIndex, graphNode.getLabel().getLocation(argIndex));
 		}
 	},
 	findResultAreaEdges: function (opCode) {
-		for (var it = this.graph.getEdgeEnds().iterator(); it.hasNext(); ) {
+		for (var it = this._graph.getEdgeEnds().iterator(); it.hasNext(); ) {
 			var de = it.next();
 			var label = de.getLabel();
 			if (label.isArea() && !de.isInteriorAreaEdge() && OverlayOp.isResultOfOp(label.getLocation(0, Position.RIGHT), label.getLocation(1, Position.RIGHT), opCode)) {
@@ -168,7 +169,7 @@ extend(OverlayOp.prototype, {
 		}
 	},
 	computeLabelsFromDepths: function () {
-		for (var it = this.edgeList.iterator(); it.hasNext(); ) {
+		for (var it = this._edgeList.iterator(); it.hasNext(); ) {
 			var e = it.next();
 			var lbl = e.getLabel();
 			var depth = e.getDepth();
@@ -190,16 +191,16 @@ extend(OverlayOp.prototype, {
 		}
 	},
 	computeLabelling: function () {
-		for (var nodeit = this.graph.getNodes().iterator(); nodeit.hasNext(); ) {
+		for (var nodeit = this._graph.getNodes().iterator(); nodeit.hasNext(); ) {
 			var node = nodeit.next();
-			node.getEdges().computeLabelling(this.arg);
+			node.getEdges().computeLabelling(this._arg);
 		}
 		this.mergeSymLabels();
 		this.updateNodeLabelling();
 	},
 	labelIncompleteNodes: function () {
 		var nodeCount = 0;
-		for (var ni = this.graph.getNodes().iterator(); ni.hasNext(); ) {
+		for (var ni = this._graph.getNodes().iterator(); ni.hasNext(); ) {
 			var n = ni.next();
 			var label = n.getLabel();
 			if (n.isIsolated()) {
@@ -210,7 +211,7 @@ extend(OverlayOp.prototype, {
 		}
 	},
 	isCoveredByA: function (coord) {
-		if (this.isCovered(coord, this.resultPolyList)) return true;
+		if (this.isCovered(coord, this._resultPolyList)) return true;
 		return false;
 	},
 	interfaces_: function () {
@@ -225,11 +226,20 @@ OverlayOp.overlayOp = function (geom0, geom1, opCode) {
 	var geomOv = gov.getResultGeometry(opCode);
 	return geomOv;
 };
-OverlayOp.intersection = function (g, other) {
-	if (g.isEmpty() || other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.INTERSECTION, g, other, g.getFactory());
-	if (g.isGeometryCollection()) {
+OverlayOp.union = function (geom, other) {
+	if (geom.isEmpty() || other.isEmpty()) {
+		if (geom.isEmpty() && other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.UNION, geom, other, geom.getFactory());
+		if (geom.isEmpty()) return other.copy();
+		if (other.isEmpty()) return geom.copy();
+	}
+	if (geom.isGeometryCollection() || other.isGeometryCollection()) throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
+	return SnapIfNeededOverlayOp.overlayOp(geom, other, OverlayOp.UNION);
+};
+OverlayOp.intersection = function (geom, other) {
+	if (geom.isEmpty() || other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.INTERSECTION, geom, other, geom.getFactory());
+	if (geom.isGeometryCollection()) {
 		var g2 = other;
-		return GeometryCollectionMapper.map(g, {
+		return GeometryCollectionMapper.map(geom, {
 			interfaces_: function () {
 				return [MapOp];
 			},
@@ -238,19 +248,17 @@ OverlayOp.intersection = function (g, other) {
 			}
 		});
 	}
-	g.checkNotGeometryCollection(g);
-	g.checkNotGeometryCollection(other);
-	return SnapIfNeededOverlayOp.overlayOp(g, other, OverlayOp.INTERSECTION);
+	if (geom.isGeometryCollection() || other.isGeometryCollection()) throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
+	return SnapIfNeededOverlayOp.overlayOp(geom, other, OverlayOp.INTERSECTION);
 };
-OverlayOp.symDifference = function (g, other) {
-	if (g.isEmpty() || other.isEmpty()) {
-		if (g.isEmpty() && other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.SYMDIFFERENCE, g, other, g.getFactory());
-		if (g.isEmpty()) return other.copy();
-		if (other.isEmpty()) return g.copy();
+OverlayOp.symDifference = function (geom, other) {
+	if (geom.isEmpty() || other.isEmpty()) {
+		if (geom.isEmpty() && other.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.SYMDIFFERENCE, geom, other, geom.getFactory());
+		if (geom.isEmpty()) return other.copy();
+		if (other.isEmpty()) return geom.copy();
 	}
-	g.checkNotGeometryCollection(g);
-	g.checkNotGeometryCollection(other);
-	return SnapIfNeededOverlayOp.overlayOp(g, other, OverlayOp.SYMDIFFERENCE);
+	if (geom.isGeometryCollection() || other.isGeometryCollection()) throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
+	return SnapIfNeededOverlayOp.overlayOp(geom, other, OverlayOp.SYMDIFFERENCE);
 };
 OverlayOp.resultDimension = function (opCode, g0, g1) {
 	var dim0 = g0.getDimension();
@@ -276,7 +284,7 @@ OverlayOp.createEmptyResult = function (overlayOpCode, a, b, geomFact) {
 	var result = null;
 	switch (OverlayOp.resultDimension(overlayOpCode, a, b)) {
 		case -1:
-			result = geomFact.createGeometryCollection(new Array(0).fill(null));
+			result = geomFact.createGeometryCollection();
 			break;
 		case 0:
 			result = geomFact.createPoint();
@@ -290,12 +298,11 @@ OverlayOp.createEmptyResult = function (overlayOpCode, a, b, geomFact) {
 	}
 	return result;
 };
-OverlayOp.difference = function (g, other) {
-	if (g.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.DIFFERENCE, g, other, g.getFactory());
-	if (other.isEmpty()) return g.copy();
-	g.checkNotGeometryCollection(g);
-	g.checkNotGeometryCollection(other);
-	return SnapIfNeededOverlayOp.overlayOp(g, other, OverlayOp.DIFFERENCE);
+OverlayOp.difference = function (geom, other) {
+	if (geom.isEmpty()) return OverlayOp.createEmptyResult(OverlayOp.DIFFERENCE, geom, other, geom.getFactory());
+	if (other.isEmpty()) return geom.copy();
+	if (geom.isGeometryCollection() || other.isGeometryCollection()) throw new IllegalArgumentException("This method does not support GeometryCollection arguments");
+	return SnapIfNeededOverlayOp.overlayOp(geom, other, OverlayOp.DIFFERENCE);
 };
 OverlayOp.isResultOfOp = function () {
 	if (arguments.length === 2) {

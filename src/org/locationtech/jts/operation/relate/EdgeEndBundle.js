@@ -8,7 +8,7 @@ import ArrayList from '../../../../../java/util/ArrayList';
 import Edge from '../../geomgraph/Edge';
 import inherits from '../../../../../inherits';
 export default function EdgeEndBundle() {
-	this.edgeEnds = new ArrayList();
+	this._edgeEnds = new ArrayList();
 	if (arguments.length === 1) {
 		let e = arguments[0];
 		EdgeEndBundle.call(this, null, e);
@@ -21,10 +21,10 @@ export default function EdgeEndBundle() {
 inherits(EdgeEndBundle, EdgeEnd);
 extend(EdgeEndBundle.prototype, {
 	insert: function (e) {
-		this.edgeEnds.add(e);
+		this._edgeEnds.add(e);
 	},
 	print: function (out) {
-		out.println("EdgeEndBundle--> Label: " + this.label);
+		out.println("EdgeEndBundle--> Label: " + this._label);
 		for (var it = this.iterator(); it.hasNext(); ) {
 			var ee = it.next();
 			ee.print(out);
@@ -32,10 +32,10 @@ extend(EdgeEndBundle.prototype, {
 		}
 	},
 	iterator: function () {
-		return this.edgeEnds.iterator();
+		return this._edgeEnds.iterator();
 	},
 	getEdgeEnds: function () {
-		return this.edgeEnds;
+		return this._edgeEnds;
 	},
 	computeLabelOn: function (geomIndex, boundaryNodeRule) {
 		var boundaryCount = 0;
@@ -51,7 +51,7 @@ extend(EdgeEndBundle.prototype, {
 		if (boundaryCount > 0) {
 			loc = GeometryGraph.determineBoundary(boundaryNodeRule, boundaryCount);
 		}
-		this.label.setLocation(geomIndex, loc);
+		this._label.setLocation(geomIndex, loc);
 	},
 	computeLabelSide: function (geomIndex, side) {
 		for (var it = this.iterator(); it.hasNext(); ) {
@@ -59,21 +59,21 @@ extend(EdgeEndBundle.prototype, {
 			if (e.getLabel().isArea()) {
 				var loc = e.getLabel().getLocation(geomIndex, side);
 				if (loc === Location.INTERIOR) {
-					this.label.setLocation(geomIndex, side, Location.INTERIOR);
+					this._label.setLocation(geomIndex, side, Location.INTERIOR);
 					return null;
-				} else if (loc === Location.EXTERIOR) this.label.setLocation(geomIndex, side, Location.EXTERIOR);
+				} else if (loc === Location.EXTERIOR) this._label.setLocation(geomIndex, side, Location.EXTERIOR);
 			}
 		}
 	},
 	getLabel: function () {
-		return this.label;
+		return this._label;
 	},
 	computeLabelSides: function (geomIndex) {
 		this.computeLabelSide(geomIndex, Position.LEFT);
 		this.computeLabelSide(geomIndex, Position.RIGHT);
 	},
 	updateIM: function (im) {
-		Edge.updateIM(this.label, im);
+		Edge.updateIM(this._label, im);
 	},
 	computeLabel: function (boundaryNodeRule) {
 		var isArea = false;
@@ -81,7 +81,7 @@ extend(EdgeEndBundle.prototype, {
 			var e = it.next();
 			if (e.getLabel().isArea()) isArea = true;
 		}
-		if (isArea) this.label = new Label(Location.NONE, Location.NONE, Location.NONE); else this.label = new Label(Location.NONE);
+		if (isArea) this._label = new Label(Location.NONE, Location.NONE, Location.NONE); else this._label = new Label(Location.NONE);
 		for (var i = 0; i < 2; i++) {
 			this.computeLabelOn(i, boundaryNodeRule);
 			if (isArea) this.computeLabelSides(i);

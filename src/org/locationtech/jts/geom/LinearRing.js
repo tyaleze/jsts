@@ -2,7 +2,6 @@ import LineString from './LineString';
 import Geometry from './Geometry';
 import hasInterface from '../../../../hasInterface';
 import GeometryFactory from './GeometryFactory';
-import Coordinate from './Coordinate';
 import IllegalArgumentException from '../../../../java/lang/IllegalArgumentException';
 import extend from '../../../../extend';
 import CoordinateSequences from './CoordinateSequences';
@@ -10,7 +9,7 @@ import CoordinateSequence from './CoordinateSequence';
 import Dimension from './Dimension';
 import inherits from '../../../../inherits';
 export default function LinearRing() {
-	if (arguments[0] instanceof Coordinate && arguments[1] instanceof GeometryFactory) {
+	if (arguments[0] instanceof Array && arguments[1] instanceof GeometryFactory) {
 		let points = arguments[0], factory = arguments[1];
 		LinearRing.call(this, factory.getCoordinateSequenceFactory().create(points), factory);
 	} else if (hasInterface(arguments[0], CoordinateSequence) && arguments[1] instanceof GeometryFactory) {
@@ -21,9 +20,6 @@ export default function LinearRing() {
 }
 inherits(LinearRing, LineString);
 extend(LinearRing.prototype, {
-	getSortIndex: function () {
-		return Geometry.SORTINDEX_LINEARRING;
-	},
 	getBoundaryDimension: function () {
 		return Dimension.FALSE;
 	},
@@ -33,8 +29,11 @@ extend(LinearRing.prototype, {
 		}
 		return LineString.prototype.isClosed.call(this);
 	},
+	getTypeCode: function () {
+		return Geometry.TYPECODE_LINEARRING;
+	},
 	reverse: function () {
-		var seq = this.points.copy();
+		var seq = this._points.copy();
 		CoordinateSequences.reverse(seq);
 		var rev = this.getFactory().createLinearRing(seq);
 		return rev;
@@ -48,10 +47,10 @@ extend(LinearRing.prototype, {
 		}
 	},
 	getGeometryType: function () {
-		return "LinearRing";
+		return Geometry.TYPENAME_LINEARRING;
 	},
 	copy: function () {
-		return new LinearRing(this.points.copy(), this.factory);
+		return new LinearRing(this._points.copy(), this._factory);
 	},
 	interfaces_: function () {
 		return [];
